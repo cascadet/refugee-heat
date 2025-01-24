@@ -77,7 +77,7 @@ if __name__ == "__main__":
     thresh = '30' # threshold 
 
     # Select 2007 - 2016 counts and SSP counts 
-    path = os.path.join('../../grp-ct/data/processed/CHC-CMIP6/')
+    path = os.path.join('') # path to data
     fns = sorted(glob.glob(os.path.join(path + 'annual_counts/' + data + '/' + ssp + '*' + thresh + '*.tif'))) # + ssp + thresh + '*.tif')))[24:]
     print(len(fns), fns[0])
 

@@ -197,6 +197,6 @@ if __name__ == "__main__":
     print(year_list)
     
     #Run it
-    parallel_loop(function = hi_loop, start_list = year_list, cpu_num = 7) # set to available CPUS for speed
+    parallel_loop(function = hi_loop, start_list = year_list, cpu_num = 7) # set to available CPUs for speed
     
     print('done')
