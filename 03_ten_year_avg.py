@@ -72,17 +72,25 @@ def raster_avg(fns, fn_out):
 if __name__ == "__main__":
 
     # data out 
-    ssp = '2050_SSP245' # '2050_SSP245' #'2050_SSP585' 'obs'
+    ssp = ''# '2050_SSP245' # '2050_SSP245' #'2050_SSP585' 
     data = 'wbgtmax' # data set
     thresh = '30' # threshold 
 
     # Select 2007 - 2016 counts and SSP counts 
-    path = os.path.join('../../../grp-ct/data/processed/CHC-CMIP6/')
-    fns = sorted(glob.glob(os.path.join(path + 'annual_counts/' + data + '/' + ssp + '*' + thresh + '*.tif')))[24:] # + ssp + thresh + '*.tif')))[24:]
-    print(len(fns))
+    path = os.path.join('../../grp-ct/data/processed/CHC-CMIP6/')
+    fns = sorted(glob.glob(os.path.join(path + 'annual_counts/' + data + '/' + ssp + '*' + thresh + '*.tif'))) # + ssp + thresh + '*.tif')))[24:]
+    print(len(fns), fns[0])
 
+    # drop SSP for observations
+    fns = [item for item in fns if 'SSP' not in item]
+    print(len(fns), fns[0])
+
+    # Get 2007- 2016
+    fns = fns[24:]
+    print(len(fns), fns[0])
+    
     # fn out
-    fn_out = os.path.join(path + ssp + '.' +data + thresh + '.avg_count_07-16.tif')
+    fn_out = os.path.join(path + 'refugees/' + ssp + '.' +data + thresh + '.avg_count_07-16.tif')
     print(fn_out)
 
     # run it
