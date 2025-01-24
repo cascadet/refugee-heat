@@ -1,7 +1,7 @@
 ##################################################################################
 #
 #       Count Days
-#       By Cascade Tuholske May 2022
+#       By Cascade Tuholske, cascade (dot) tuholske1 (at) montana (dot) edu  
 #
 #       This script opens a set of daily temperature rasters (himax, tmax, wbgtmax, etc)
 #       and applies a threshold to create a binary array for each day based on the
@@ -12,14 +12,6 @@
 #       grid-cell could be 16, meaning 16 days in thaat cell exceeded 30°C.
 #
 #       Update args for each run (e.g. wbgt 28, 30, and 32) in main.
-#
-#       Note (2022-07-06): Right now this runs on the UHE dataset using the
-#       RHmin and Tmax combo used in Tuholske et al 2021 PNAS.
-#
-#       Update 2022-07-06: Working on ocean NAN problem. Right now they're 
-#       set to zero going to change them back and see what happens. 
-#
-#       Update 2023-03-05: Running on new WBGTmax made with RHx observational data.
 #
 #################################################################################
 
@@ -37,12 +29,26 @@ from multiprocessing import Pool
 
 def annual_count_array(year):
     
-    """ Open a set of daily rasters for a given year and threhold them to make a binary array. Then add
-    the binary arrays together to get a count array. Then write out the array.
-    
+    """
+    Processes daily raster files for a given year, thresholds them to create binary arrays, 
+    sums these binary arrays to produce a count array, and writes the result to a new raster file.
+
+    This function reads a set of raster files for a specified year, applies a threshold to 
+    each raster to create a binary mask, and sums these masks across all rasters for the year. 
+    The output is a count array where each pixel value represents the number of days exceeding 
+    the threshold during that year. The result is saved to a GeoTIFF file.
+
     Args:
-        year = year for a MP process to count the number of threshold days
-        
+        year (int): The year for which to process raster files and compute the count array.
+
+
+    Output:
+        - A GeoTIFF file with the annual count array saved in the output directory.
+    
+        - Ensure that the `path_in`, `path_out`, `data_in`, and `thresh` variables are 
+          defined and accessible in the global scope.
+        - Input rasters should have the same spatial dimensions and CRS.
+
     """
     
     # print process
@@ -92,12 +98,25 @@ def annual_count_array(year):
         out.write_band(1, arr_out)
 
 def parallel_loop(function, start_list, cpu_num):
-    """Run a routine in parallel
-    Args: 
-        function = function to apply in parallel
-        start_list = list of args for function to loop through in parallel
-        cpu_num = numper of cpus to fire  
-    """ 
+    """
+    Executes a given function in parallel using multiple CPU cores.
+
+    This function leverages Python's multiprocessing capabilities to run the 
+    specified function concurrently across a given number of CPU cores. The 
+    function is applied to each element of the provided `start_list`.
+
+    Args:
+        function (callable): The function to execute in parallel. It should be 
+            able to accept elements from the `start_list` as arguments.
+        start_list (list): A list of arguments to pass to the `function` in parallel.
+        cpu_num (int): The number of CPU cores to utilize for parallel processing.
+
+    Note:
+        - Ensure that the `function` is defined at the top level of the module, 
+          as `multiprocessing` requires functions to be pickleable.
+        - The `start_list` should contain all the required inputs for the function 
+          to operate correctly.
+    """
     start = time.time()
     pool = Pool(processes = cpu_num)
     pool.map(function, start_list)
@@ -110,8 +129,8 @@ def parallel_loop(function, start_list, cpu_num):
 if __name__ == "__main__":
     
     # Set args
-    path_in = os.path.join('/home/cascade/CHIRTS/wbgtmax-tmax-rhx/')
-    path_out = os.path.join('/home/cascade/CHIRTS/wbgtmax-tmax-rhx/annualcounts/')
+    path_in = os.path.join('') # path to himax or wbgtmax files 
+    path_out = os.path.join('') # path to annualcounts
     data_in = 'wbgtmax'
     thresh = 30
     
@@ -122,6 +141,6 @@ if __name__ == "__main__":
     # year_list = year_list[:3]
     
     # run it
-    parallel_loop(function = annual_count_array, start_list = year_list, cpu_num = 24)
+    parallel_loop(function = annual_count_array, start_list = year_list, cpu_num = 24) # number of CPUS available 
     
     print('done!')

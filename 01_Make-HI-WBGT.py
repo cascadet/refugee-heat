@@ -1,52 +1,21 @@
 ##################################################################################
 #
-#       Make Heat Index
-#       By Cascade Tuholske Spring 2021
+#       Make Heat Index and Wet Bulb Globe Temperature 
+#       By Cascade Tuholske, cascade (dot) tuholske1 (at) montana (dot) edu  
 #
 #       ALWAYS CHECK FILE PATHS AND FILE NAMES BEFORE RUNNING
 #
-#       Program makes daily maximum heat index tifs with CHIRTS-daily Tmax and 
-#       relative humidity min estimated with CHIRTS-daily Tmax
+#       Make daily maximum heat index tifs with CHC-CMIP Tmax and 
+#       RHx to estimate daily maximum heat index and indoor shaded wet bulb globe 
+#       temperature (Bernard and Iheanacho 2015) 
 #
 #       NOAA Heat Index Equation - https://www.wpc.ncep.noaa.gov/html/heatindex_equation.shtml
 #
-#       Note - right now units are all in C. They can be updated to F or C as needed. 
-#              See make_hi function to make changes CPT July 2021
+#       Bernard, T. E., & Iheanacho, I. (2015). Heat index and adjusted temperature as surrogates 
+#       for wet bulb globe temperature to screen for occupational heat stress. 
+#       Journal of Occupational and Environmental Hygiene, 12(5), 323-333.
 #
-#       Re-run on Tmax and RHx May 2022 for 1983 - CPT
-#        RHx - /home/CHIRTS/daily_ERA5/w-ERA5_Td.eq2-2-spechum/
-#        Tmax - /home/cascade/chc-data-out/products/CHIRTSdaily/v1.0/global_tifs_p05/Tmax
-#        RHx added to Line 59 for this run 
-#
-#       Re-run on Tmax and RHx Sep 2022 for all data - CPT
-#        RHx - /home/cascade/CHIRTS/daily_ERA5/ERA5-RH/
-#        Tmax - /home/cascade/chc-data-out/products/CHIRTSdaily/v1.0/global_tifs_p05/Tmax/
-#        HI(hi-tmax-rhx) - /home/cascade/CHIRTS/hi-tmax-rhx/  
-#
-#       NOTE - uncomment "make dir to write" for future runs (CPT Sep 2022)
-#
-#       Oct 2022 - CPT
-#       Running on CHIRTS-CMIP6 projections
-#       10/25/22 --- /home/cascade/CMIP6/2030_SSP245/Tmax + RHx started on Forge 
-#
-#       March 3 2023 - Observations ReRun CPT
-#       
-#       Re-run on new RHx observations. Had to replace nan values with -9999 for logic in HI equation 
-#
-#       Inputs:
-#       RHx (RH at hour of Tmax) CHIRTS-daily: Path: /home/CHIRTS/daily_ERA5/ERA5.2023.via-vp/ (RHx.***)
-#       Tmax CHIRTS-daily: /home/chc-data-out/products/CHIRTSdaily/v1.0/global_tifs_p05/Tmax/1983/ (Tmax.***)
-#
-#       Outputs:
-#       himax: /home/CHIRTS/himax-tmax-rhx/
-#       wbgtmax: /home/CHIRTS/wbgtmax-tmax-rhx/
-#
-#       #   UPDATED MARCH 2023 by Cascade Tuholkse
-#       Move 02_HI-to_WBGT into 01_MakeHeatIndex.py, renamed 01_Make-HI-WBGT.py
-#       to run the whole thing at once. Should speed things up as it cuts the I/O
-#       down. 
-#
-#       # March 8 2023 - Running on all CHC-CMIP datasets
+#       CHC-CMIP6 Data: https://www.chc.ucsb.edu/data/chc-cmip6
 #
 #################################################################################
 
@@ -64,33 +33,46 @@ import multiprocessing
 import ClimFuncs
 
 def hi_loop(year):
-    
-    """ Function takes the year from a list and makes the pixel level HImax & WBGTmax from CHIRTS Tmax and RHmin using
-    ClimFuncs.py functions. 
-    
+    """
+    Processes daily CHIRTS Tmax and RHx rasters to compute pixel-level HImax (Heat Index maximum) 
+    and WBGTmax (Wet Bulb Globe Temperature maximum) for a given year.
+
+    This function reads daily CHIRTS Tmax (maximum temperature) and RHx (maximum relative humidity) 
+    raster files, calculates the HImax and WBGTmax indices for each day using custom functions 
+    from the `ClimFuncs` module, and saves the resulting rasters in a specified output directory.
+
     Args:
-        year = all files should be in a dir by year
+    year (int): The year for which the function processes data. All input files 
+                should be organized in directories by year.
+    Notes:
+    - Ensure that the `ClimFuncs` module is accessible and includes the required 
+      functions: `heatindex`, `C_to_F`, and `hi_to_wbgt`.
+    - The `SSP_dataset` variable can be modified to indicate specific scenarios or 
+      observational data.
+    - Input and output file paths need to be appropriately defined.
+
+
     """
     
     print(multiprocessing.current_process(), year)
     
     # data handle + dataset for SSPs
-    rh_handle = 'RHx.'
-    SSP_dataset = '2050_SSP245'
+    rh_handle = 'RHx.' # or Tmax. 
+    SSP_dataset = '2050_SSP245' # blank for observational data 
     #print(dataset)
     
-    # Set up file paths for CMIP
-    path = os.path.join('/home/cascade/CMIP6/')
+    # Set up file paths for CMIP SSP 
+    path = os.path.join('') #PATH/TO/DATA 
     rh_path = os.path.join(path, SSP_dataset + '/' + rh_handle.split('.')[0] + '/' + str(year))  
     tmax_path = os.path.join(path, SSP_dataset + '/Tmax/' + str(year))   
     hi_path = os.path.join(path, SSP_dataset + '/himax/' + str(year)) 
     wbgt_path = os.path.join(path, SSP_dataset + '/wbgtmax/' + str(year)) 
      
     # Set up file paths for obsevational
-#     rh_path = os.path.join('/home/CHIRTS/daily_ERA5/ERA5.2023.via-vp/', str(year))  
-#     tmax_path = os.path.join('/home/chc-data-out/products/CHIRTSdaily/v1.0/global_tifs_p05/Tmax/', str(year)) 
-#     hi_path = os.path.join('/home/CHIRTS/himax-tmax-rhx/', str(year))
-#     wbgt_path = os.path.join('/home/CHIRTS/wbgtmax-tmax-rhx/', str(year))
+#     rh_path = os.path.join('', str(year))  
+#     tmax_path = os.path.join('', str(year)) 
+#     hi_path = os.path.join('himax-tmax-rhx/', str(year))
+#     wbgt_path = os.path.join('wbgtmax-tmax-rhx/', str(year))
                             
     # make dir to write 
 #     cmd = 'mkdir '+ hi_path 
@@ -175,12 +157,26 @@ def hi_loop(year):
         print(fn_out, 'done')
             
 def parallel_loop(function, start_list, cpu_num):
-    """Run a routine in parallel
-    Args: 
-        function = function to apply in parallel
-        start_list = list of args for function to loop through in parallel
-        cpu_num = numper of cpus to fire  
-    """ 
+    """
+    Executes a given function in parallel using multiple CPU cores.
+
+    This function leverages Python's multiprocessing capabilities to run the 
+    specified function concurrently across a given number of CPU cores. The 
+    function is applied to each element of the provided `start_list`.
+
+    Args:
+        function (callable): The function to execute in parallel. It should be 
+            able to accept elements from the `start_list` as arguments.
+        start_list (list): A list of arguments to pass to the `function` in parallel.
+        cpu_num (int): The number of CPU cores to utilize for parallel processing.
+
+    Note:
+        - Ensure that the `function` is defined at the top level of the module, 
+          as `multiprocessing` requires functions to be pickleable.
+        - The `start_list` should contain all the required inputs for the function 
+          to operate correctly.
+    """
+    
     start = time.time()
     pool = Pool(processes = cpu_num)
     pool.map(function, start_list)
@@ -194,14 +190,13 @@ if __name__ == "__main__":
     print('start')
     
     # Make years 
-    #year_list = list(range(1983,2016+1))
-    year_list = list(range(2010, 2016+1,1))
+    year_list = list(range(1983,2016+1))
+    #year_list = list(range(2010, 2016+1,1))
     
     #year_list = year_list[:3]# test
-    #year_list = ['2016']
     print(year_list)
     
     #Run it
-    parallel_loop(function = hi_loop, start_list = year_list, cpu_num = 7)
+    parallel_loop(function = hi_loop, start_list = year_list, cpu_num = 7) # set to available CPUS for speed
     
     print('done')
